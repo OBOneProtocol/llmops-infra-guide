@@ -1,4 +1,4 @@
-# Project 1: Automatic Dockerfile Generation with Local LLM
+# Automatic Dockerfile Generation with Local LLM
 
 ## Objective
 Create a tool that automatically generates validated Dockerfiles for various project stacks using a local LLM.
