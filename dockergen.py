@@ -257,6 +257,8 @@ def run(path: Path, attempts: int, generate: Callable[[str], str],
         if dry_run:
             if refusal:
                 warn(refusal)
+                log(f"Dry run: Dockerfile written to {dockerfile_path}; it would be refused, not built.")
+                return False
             log(f"Dry run: Dockerfile written to {dockerfile_path}; not built.")
             return True
         if refusal:

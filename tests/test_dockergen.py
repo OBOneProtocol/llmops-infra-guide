@@ -401,7 +401,7 @@ def test_dry_run_never_calls_build(tmp_path, monkeypatch, capsys):
 def test_dry_run_warns_on_refused_dockerfile_without_building(tmp_path, monkeypatch, capsys):
     p = make_project(tmp_path, {"main.go": ""})
     build = fake_main_env(monkeypatch, [REFUSED["network"]], [])
-    assert dg.main([str(p), "--dry-run"]) == 0
+    assert dg.main([str(p), "--dry-run"]) == 1
     assert build.paths == []
     assert "refused by dockergen" in capsys.readouterr().err
 
@@ -425,3 +425,11 @@ def test_samples_have_valid_manifests():
     go_mod = (ROOT / "samples/go-app/go.mod").read_text().splitlines()
     assert go_mod[0] == "module go-app" and "go 1.21" in go_mod
     assert "express" in json.loads((ROOT / "samples/node-app/package.json").read_text())["dependencies"]
+
+
+def test_dry_run_with_refused_dockerfile_returns_false_and_never_builds(tmp_path):
+    p = make_project(tmp_path, {"main.go": ""})
+    built = []
+    ok = dg.run(p, 3, generate=lambda pr: "# syntax=evil/frontend\nFROM x\n",
+                build=lambda path: (built.append(1), (True, ""))[1], log=lambda m: None, dry_run=True)
+    assert ok is False and not built

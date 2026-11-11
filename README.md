@@ -36,7 +36,7 @@ python3 dockergen.py path/to/app --dry-run        # write and print one Dockerfi
 | Exit code | Meaning |
 |---|---|
 | `0` | a Dockerfile was written and built (with `--dry-run`: written and printed, not built) |
-| `1` | every attempt failed to build or was refused by `check_dockerfile`; the last Dockerfile is left for inspection |
+| `1` | every attempt failed to build or was refused by `check_dockerfile` (with `--dry-run`: the one Dockerfile would be refused); the last Dockerfile is left for inspection |
 | `2` | usage or setup error: not a directory, `--attempts` below 1, Docker not on PATH or its daemon unreachable, Ollama unreachable or its reply malformed or empty, `Dockerfile` is a symlink |
 
 ## Safety
