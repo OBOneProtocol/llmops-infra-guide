@@ -1,1 +1,3 @@
-module go-app\n\ngo 1.21
+module go-app
+
+go 1.21
