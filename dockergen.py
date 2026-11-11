@@ -47,7 +47,8 @@ MAX_DEPENDENCY_CHARS = 4000
 MAX_ERROR_LINES = 40
 IGNORED_NAMES = {".git", "node_modules", "__pycache__", ".venv", "venv", "Dockerfile"}
 LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
-DAEMON_DOWN = "Cannot connect to the Docker daemon"
+# Older and newer docker CLIs word an unreachable daemon differently.
+DAEMON_DOWN = ("Cannot connect to the Docker daemon", "failed to connect to the docker API")
 
 SYSTEM_RULES = (
     "Reply with only the Dockerfile, no explanation. Use an official, pinned base image tag, "
@@ -183,7 +184,7 @@ def docker_build(path: Path, tag: str, timeout: float, network: str = "default")
     except subprocess.TimeoutExpired:
         return False, f"docker build timed out after {timeout:.0f}s"
     output = result.stdout + result.stderr
-    if result.returncode != 0 and DAEMON_DOWN in output:
+    if result.returncode != 0 and any(marker in output for marker in DAEMON_DOWN):
         raise RuntimeError(f"Docker daemon is not reachable: {tail(output, 1)}")
     return result.returncode == 0, output
 

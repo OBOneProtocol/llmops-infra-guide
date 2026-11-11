@@ -294,10 +294,15 @@ def test_main_exit_2_when_docker_daemon_down(tmp_path, monkeypatch, capsys):
     assert "daemon" in capsys.readouterr().err
 
 
-def test_docker_build_daemon_down_raises(monkeypatch, tmp_path):
+@pytest.mark.parametrize("stderr", [
+    "ERROR: Cannot connect to the Docker daemon at unix:///var/run/docker.sock.",
+    "ERROR: failed to connect to the docker API at unix:///var/run/docker.sock",
+])
+def test_docker_build_daemon_down_raises(monkeypatch, tmp_path, stderr):
     class Result:
         returncode, stdout = 1, ""
-        stderr = "ERROR: Cannot connect to the Docker daemon at unix:///var/run/docker.sock."
+
+    Result.stderr = stderr
 
     monkeypatch.setattr(dg.subprocess, "run", lambda cmd, **kw: Result())
     with pytest.raises(RuntimeError, match="not reachable"):
