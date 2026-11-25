@@ -1,6 +1,43 @@
-# dockergen: Dockerfiles from a local LLM, judged by `docker build`
+# dockergen
 
-A small, self-correcting loop. A local model (via [Ollama](https://ollama.com)) writes a Dockerfile, `docker build` decides whether it works, and when it doesn't, the model gets its previous Dockerfile plus the tail of the build error and tries again. A successful build is the only thing that counts as success.
+**Dockerfiles from a local LLM, judged by `docker build`. When a build fails, the error goes back to the model for the next attempt.**
+
+[![tests](https://github.com/OBOneProtocol/llmops-infra-guide/actions/workflows/tests.yml/badge.svg)](https://github.com/OBOneProtocol/llmops-infra-guide/actions/workflows/tests.yml)
+![Tested on Python 3.12](https://img.shields.io/badge/tested_on-Python_3.12-3776AB?style=flat&logo=python&logoColor=white)
+![No dependencies](https://img.shields.io/badge/dependencies-standard_library_only-555?style=flat)
+![Tests run offline](https://img.shields.io/badge/tests-offline%2C_no_Docker_needed-555?style=flat)
+![Backend: Ollama](https://img.shields.io/badge/LLM-Ollama-555?style=flat)
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/loop-dark.svg">
+    <img src="assets/loop-light.svg" alt="How dockergen works: inspect the project, the LLM writes a Dockerfile, safety checks refuse risky features, and docker build judges it. A refusal or a failed build sends the previous Dockerfile plus the refusal reason or the last 40 lines of build output back to the LLM, up to --attempts rounds; if every attempt fails it exits 1 and leaves the last Dockerfile for inspection." width="880">
+  </picture>
+</p>
+
+A successful build is the only thing that counts as success. Every Dockerfile
+is printed before it is built, an existing `Dockerfile` is backed up first, and
+`--dry-run` lets you review one without building anything.
+
+## Quickstart
+
+```bash
+git clone https://github.com/OBOneProtocol/llmops-infra-guide.git
+cd llmops-infra-guide
+ollama pull qwen2.5-coder:7b          # needs Ollama and Docker running locally
+python3 dockergen.py samples/flask-app --dry-run   # write and print, build nothing
+python3 dockergen.py samples/flask-app             # generate, build, retry on failure
+```
+
+## Sample results
+
+| Run | Model | Project | Outcome |
+|---|---|---|---|
+| Sep 2026 | `qwen2.5-coder:7b` | Node.js sample | The first build copied `node_modules` into the context. The build error went back to the model, and the retry produced a multi-stage build that ignores local modules ([FAILURES.md](FAILURES.md)). |
+| Nov 2026 | `qwen2.5-coder:1.5b` | Go sample, `--network none` | Built on the first attempt (exit 0). The image did not start: it set `USER go`, which the Alpine base doesn't have (`docker run` exit 125). See Limits. |
+| Nov 2026 | `qwen2.5-coder:1.5b` | Go sample, `--dry-run` | Wrote and printed a Dockerfile, built nothing (exit 0). |
+
+The default `qwen2.5-coder:7b` has not been re-tested with the current version.
 
 ## How it works
 
@@ -54,12 +91,6 @@ No third-party Python packages are needed; the tool uses only the standard libra
 ## Samples
 
 `samples/` holds three minimal "hello" services to try it on: Flask (`flask==3.0.3`), Express (`express 4.18.2`) and Go's `net/http` (Go 1.21).
-
-## Results so far
-
-- Original runs with `qwen2.5-coder:7b` (September 2026) are recorded in [FAILURES.md](FAILURES.md), including the Node.js `.dockerignore` correction.
-- November 2026, with this version and the much smaller `qwen2.5-coder:1.5b` on a copy of the Go sample (`--network none`, `--attempts 3`): the build succeeded on the first attempt (exit 0). The image it built did not start: the Dockerfile set `USER go`, which does not exist in the Alpine base image (`docker run` exit 125). That is the "built, not run" limit below in practice. A `--dry-run` on another copy wrote and printed a Dockerfile and built nothing (exit 0).
-- `qwen2.5-coder:7b`, the default model, has not been re-tested with this version.
 
 ## Tests
 
